@@ -108,6 +108,11 @@
       <p class="hint">Liga as pinturas da temporada no Automobilista 2. As suas pinturas não são tocadas, e desligar tira só as da liga. <b>Vale quando o jogo carregar de novo.</b></p>
       <div class="rows" id="carsetRows"><div class="muted">Carregando…</div></div>
       <p class="note" id="carsetNote"></p>
+      <div class="card" id="carsetLegacy" hidden>
+        <h3>Voltar ao padrão do jogo</h3>
+        <p class="lead">Há pinturas originais guardadas com "_old_" por uma instalação antiga de carset. Isto devolve as originais ao lugar; as do carset vão para a pasta "_carset_removido" de cada carro (nada é apagado). Feche o jogo antes.</p>
+        <div class="row wrap"><button class="btn" id="carsetRestoreBtn" onclick="voltarAoPadrao()">Voltar ao padrão do jogo</button></div>
+      </div>
     </section>
 
     <!-- ============================================================ TRANSMITIR -->

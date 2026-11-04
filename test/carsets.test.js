@@ -205,3 +205,29 @@ test("pinturas antigas: so os _old_ dentro das pastas dos carros sao contados e 
     fs.rmSync(game, { recursive: true, force: true });
   }
 });
+
+test("voltar ao padrao: instala em modo clean e restaura o original sem apagar nada", () => {
+  const s = setup();
+  try {
+    carsets.installExtracted(s.ext, s.game, "clean");
+    assert.equal(s.read("stock_cruze", "stock_cruze.xml"), "xml novo");
+    const r = carsets.restoreOld(s.game);
+    assert.deepEqual(r.failed, []);
+    assert.equal(r.cars, 2);
+    // original de volta, dist intacto, nenhum "_old_" sobrando
+    assert.equal(s.read("stock_cruze", "stock_cruze.xml"), "xml antigo");
+    assert.equal(s.read("stock_cruze", "lets_go", "body51.dds"), "lets go antigo");
+    assert.equal(s.read("stock_cruze", "equipe_velha", "body1.dds"), "velho");
+    assert.equal(s.read("stock_cruze", "stock_cruze_dist.xml"), "dist do jogo");
+    assert.equal(carsets.listOld(s.game).count, 0);
+    // a versao do carset ficou guardada, nao foi apagada
+    assert.equal(s.read("stock_cruze", "_carset_removido", "stock_cruze.xml"), "xml novo");
+    assert.equal(s.read("stock_cruze", "_carset_removido", "lets_go", "body51.dds"), "lets go novo");
+    // carro que o carset nao tocou
+    assert.equal(s.read("bmw_m4_gt3", "minha", "x.dds"), "nao mexer");
+    // sem nada para restaurar, nao faz nada
+    assert.deepEqual(carsets.restoreOld(s.game), { restored: 0, cars: 0, failed: [] });
+  } finally {
+    s.clean();
+  }
+});

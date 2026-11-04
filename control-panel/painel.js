@@ -424,6 +424,7 @@
         : d.gameRunning
           ? "O jogo está aberto: as pinturas mudam quando ele carregar de novo."
           : "";
+    $("carsetLegacy").hidden = !(d.legacy && d.legacy.count > 0);
     if (!d.items.length) {
       $("carsetRows").innerHTML = '<div class="muted">Nenhum carset na lista da liga.</div>';
       return;
@@ -452,6 +453,18 @@
     clearTimeout(carsetPoll);
     if (st.running && tela === "pinturas") carsetPoll = setTimeout(carregarPinturas, 1000);
   }
+
+  async function voltarAoPadrao() {
+    if (!confirm("Devolver as pinturas originais do jogo? As do carset instalado pelo método antigo saem de uso (ficam guardadas em _carset_removido).")) return;
+    try {
+      const r = await api("POST", "/api/carsets/restore");
+      $("carsetNote").textContent = `Padrão do jogo restaurado: ${r.restored} itens em ${r.cars} carros${r.failed && r.failed.length ? `, ${r.failed.length} com erro` : ""}.`;
+    } catch (err) {
+      $("carsetNote").textContent = "Não deu: " + err.message;
+    }
+    carregarPinturas();
+  }
+  window.voltarAoPadrao = voltarAoPadrao;
 
   async function alternarCarset(season, on) {
     try {

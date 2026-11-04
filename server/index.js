@@ -563,6 +563,21 @@ app.get("/api/carsets/old", async (req, res) => {
   }
 });
 
+// Volta ao padrao do jogo: devolve os "_old_" (instalacao antiga) ao nome original
+app.post("/api/carsets/restore", async (req, res) => {
+  try {
+    if (carsets.status().running) return res.status(409).json({ ok: false, error: "Ha um carset sendo instalado." });
+    if (await carsets.isGameRunning()) return res.status(409).json({ ok: false, error: "Feche o Automobilista 2 antes de voltar ao padrao." });
+    const gameDir = await findAms2Dir();
+    if (!gameDir) return res.status(404).json({ ok: false, error: "Automobilista 2 nao encontrado nas bibliotecas da Steam." });
+    const result = carsets.restoreOld(gameDir);
+    console.log(`Pinturas voltaram ao padrao do jogo: ${result.restored} itens em ${result.cars} carros`);
+    res.json(Object.assign({ ok: true }, result));
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Apaga os "_old_" de vez (o painel pede confirmacao antes)
 app.post("/api/carsets/old/delete", async (req, res) => {
   try {
@@ -658,7 +673,12 @@ app.get("/api/carsets/library", async (req, res) => {
     // temporadas da lista da liga (baixadas ou nao) e, depois, o que so existe na biblioteca
     const items = seasons.map((season) => Object.assign({ season, downloaded: byName.has(season), active: false, cars: 0, liveries: 0 }, byName.has(season) ? byName.get(season) : {}));
     lib.filter((c) => !seasons.includes(c.name)).forEach((c) => items.push(Object.assign({ season: c.name, downloaded: true }, c)));
-    res.json({ ok: true, gameFound: !!overrides, gameRunning, items, listError, status: carsets.status() });
+    let legacy = { count: 0, cars: 0 };
+    try {
+      const gameDir = overrides && (await findAms2Dir());
+      if (gameDir) legacy = carsets.listOld(gameDir);
+    } catch (_) {}
+    res.json({ ok: true, gameFound: !!overrides, gameRunning, items, listError, legacy, status: carsets.status() });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

@@ -200,6 +200,49 @@ function deleteOld(gameDir) {
   return { deleted, bytes, failed };
 }
 
+// Volta ao padrao do jogo o que a instalacao antiga (modo clean) trocou: para cada
+// "_old_X" na pasta de um carro, o "X" que estiver la (o do carset) vai para
+// "_carset_removido" (nada e apagado) e o "_old_X" volta a se chamar "X".
+// Devolve { restored, cars, failed }.
+const REMOVED_DIR = "_carset_removido";
+function restoreOld(gameDir) {
+  const target = overridesDir(gameDir);
+  if (!fs.existsSync(target)) throw new Error(`Pasta de pinturas do jogo nao encontrada: ${target}`);
+  let restored = 0;
+  const cars = new Set();
+  const failed = [];
+  fs.readdirSync(target, { withFileTypes: true }).forEach((car) => {
+    if (!car.isDirectory() || car.isSymbolicLink()) return;
+    const dir = path.join(target, car.name);
+    let entries = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return;
+    }
+    entries.forEach((e) => {
+      if (!e.name.startsWith(OLD_PREFIX) || e.isSymbolicLink()) return;
+      const original = e.name.slice(OLD_PREFIX.length);
+      if (!original) return;
+      try {
+        const current = path.join(dir, original);
+        if (fs.existsSync(current)) {
+          const aside = path.join(dir, REMOVED_DIR, original);
+          fs.mkdirSync(path.dirname(aside), { recursive: true });
+          fs.rmSync(aside, { recursive: true, force: true });
+          fs.renameSync(current, aside);
+        }
+        fs.renameSync(path.join(dir, e.name), current);
+        restored++;
+        cars.add(car.name);
+      } catch (err) {
+        failed.push(`${car.name}/${e.name}: ${err.message}`);
+      }
+    });
+  });
+  return { restored, cars: cars.size, failed };
+}
+
 // Aplica a pasta de um carro (src, do carset) na pasta do jogo (dest).
 // Devolve { renamed, copied, skipped }.
 function applyCar(src, dest, mode) {
@@ -375,4 +418,4 @@ async function fetchToLibrary(options) {
   }
 }
 
-module.exports = { fetchToLibrary, listOld, deleteOld, LIST_FILE, MODES, OLD_PREFIX, parseList, downloadUrl, overridesDir, findCarDirs, applyCar, installExtracted, archiveKind, isGameRunning, install, status };
+module.exports = { fetchToLibrary, listOld, deleteOld, restoreOld, LIST_FILE, MODES, OLD_PREFIX, parseList, downloadUrl, overridesDir, findCarDirs, applyCar, installExtracted, archiveKind, isGameRunning, install, status };
